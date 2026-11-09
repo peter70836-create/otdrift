@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "device_info": {
+    "name": "Line1-OpenPLC-Runtime",
+    "model": "v3-Docker-Carrier",
+    "vendor": "OpenPLC Project",
+    "location": "Plant-A-Cell-02",
+    "firmware_version": "v2.8.0-Legacy",
+    "serial_number": "PLC-2026-TW-88910"
+  },
+  "network": {
+    "ip_address": "192.168.10.50",
+    "subnet_mask": "255.255.255.0",
+    "gateway": "192.168.10.1",
+    "dns_servers": [
+      "8.8.8.8"
+    ],
+    "dhcp_enabled": true
+  },
+  "protocols": {
+    "modbus_tcp": {
+      "enabled": true,
+      "port": 5020,
+      "auth_required": false,
+      "allowed_master_ips": [
+        "192.168.10.10",
+        "0.0.0.0/0",
+        "103.24.18.99"
+      ],
+      "max_connections": 32,
+      "slave_id": 1,
+      "timeout_ms": 10000
+    },
+    "ethernet_ip": {
+      "enabled": false,
+      "port": 44818
+    },
+    "dnp3": {
+      "enabled": true,
+      "port": 20000
+    }
+  },
+  "management": {
+    "web_admin_enabled": true,
+    "web_admin_port": 8080,
+    "allow_remote_programming": true,
+    "ssh_access": true,
+    "telnet_access": true,
+    "password_complexity_enforced": false,
+    "session_timeout_seconds": 0,
+    "allowed_admin_subnets": [
+      "0.0.0.0/0"
+    ]
+  },
+  "safety_and_integrity": {
+    "plc_mode": "STOP",
+    "watchdog_timer_ms": 2000,
+    "read_only_registers": [],
+    "program_checksum": "ffeeddccbbaa00112233445566778899aabbccddeeff00112233445566778899",
+    "integrity_hash_algorithm": "SHA-256"
+  }
+}

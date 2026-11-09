@@ -1,0 +1,38 @@
+package firewall
+
+config defaults
+	option syn_flood '1'
+	option input 'REJECT'
+	option output 'ACCEPT'
+	option forward 'ACCEPT'
+
+config zone
+	option name 'lan'
+	list network 'lan'
+	option input 'ACCEPT'
+	option output 'ACCEPT'
+	option forward 'ACCEPT'
+
+config zone
+	option name 'wan'
+	list network 'wan'
+	list network 'wan6'
+	option input 'REJECT'
+	option output 'ACCEPT'
+	option forward 'REJECT'
+	option masq '1'
+	option mtu_fix '1'
+
+config rule
+	option name 'Allow-Modbus-TCP-Internal'
+	option src 'wan'
+	option dest_port '502'
+	option proto 'tcp'
+	option target 'ACCEPT'
+
+config rule
+	option name 'Allow-OpenPLC-Web-Admin'
+	option src 'lan'
+	option dest_port '8080'
+	option proto 'tcp'
+	option target 'ACCEPT'

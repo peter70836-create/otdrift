@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "device_info": {
+    "name": "SUTD-SWaT-P1-P6-WaterTreatment",
+    "model": "Allen-Bradley-ControlLogix-L71",
+    "vendor": "Rockwell Automation",
+    "location": "iTrust-Cybersecurity-Testbed-Singapore",
+    "firmware_version": "v32.011-Secured",
+    "serial_number": "SWAT-PLC-SEC-2025"
+  },
+  "network": {
+    "ip_address": "192.168.1.101",
+    "subnet_mask": "255.255.255.0",
+    "gateway": "192.168.1.1",
+    "dns_servers": ["192.168.1.1"],
+    "dhcp_enabled": false
+  },
+  "protocols": {
+    "modbus_tcp": {
+      "enabled": true,
+      "port": 502,
+      "auth_required": true,
+      "allowed_master_ips": [
+        "192.168.1.10",
+        "192.168.1.11"
+      ],
+      "max_connections": 4,
+      "slave_id": 1,
+      "timeout_ms": 3000
+    },
+    "ethernet_ip": {
+      "enabled": true,
+      "port": 44818
+    }
+  },
+  "management": {
+    "web_admin_enabled": false,
+    "web_admin_port": 8080,
+    "allow_remote_programming": false,
+    "ssh_access": false,
+    "telnet_access": false,
+    "password_complexity_enforced": true,
+    "session_timeout_seconds": 300,
+    "allowed_admin_subnets": ["192.168.1.0/24"]
+  },
+  "safety_and_integrity": {
+    "plc_mode": "RUN",
+    "watchdog_timer_ms": 100,
+    "read_only_registers": [
+      "%MW0-%MW200",
+      "%IX0.0-%IX10.7"
+    ],
+    "program_checksum": "a8f9c2d1e4b3017849cdef812903847291034871928374619283746192837461",
+    "integrity_hash_algorithm": "SHA-256"
+  },
+  "process_registers": {
+    "p1_raw_water": {
+      "lit101_high_level_alarm_mm": 800,
+      "lit101_low_level_start_mm": 500,
+      "lit101_emergency_overflow_mm": 1000,
+      "p101_pump_mode": "AUTO",
+      "mv101_inlet_valve_mode": "AUTO"
+    },
+    "p2_chemical_dosing": {
+      "ait202_ph_setpoint": 7.2,
+      "p201_dosing_pump_rpm": 1200
+    },
+    "p3_ultrafiltration": {
+      "lit301_high_level_mm": 1000,
+      "lit301_low_level_mm": 800,
+      "p301_feed_pump_mode": "AUTO"
+    },
+    "p6_distribution": {
+      "p601_backwash_pump_mode": "STANDBY",
+      "distribution_pressure_psi": 65
+    }
+  }
+}

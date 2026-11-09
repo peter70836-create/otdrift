@@ -1,0 +1,115 @@
+version: "3.8"
+
+networks:
+  ot_network:
+    name: ot_carrier_net
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+          gateway: 172.28.0.1
+
+volumes:
+  portainer_data:
+    name: ot_portainer_data
+  openplc_data:
+    name: ot_openplc_data
+
+services:
+  # =========================================================================
+  # 1. Portainer CE - Visual Container Management & Monitoring
+  # =========================================================================
+  portainer:
+    image: portainer/portainer-ce:2.21.5
+    container_name: ot_portainer
+    restart: always
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "9000:9000"   # HTTP Web UI (legacy/convenience)
+      - "9443:9443"   # HTTPS Web UI (recommended)
+      - "8000:8000"   # Edge agent communication port
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    networks:
+      ot_network:
+        ipv4_address: 172.28.0.10
+    environment:
+      - TZ=Asia/Taipei
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider --no-check-certificate https://localhost:9443 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # =========================================================================
+  # 2. OpenPLC Runtime v3 - Virtual Industrial Controller (PLC Carrier)
+  # =========================================================================
+  openplc:
+    image: tuttas/openplc_v3
+    container_name: ot_openplc_carrier
+    restart: unless-stopped
+    privileged: false
+    cap_add:
+      - NET_ADMIN
+      - NET_BIND_SERVICE
+    ports:
+      - "8080:8080"   # OpenPLC Web Management Interface
+      - "502:502"     # Modbus TCP Industrial Protocol
+    volumes:
+      - openplc_data:/workdir/webserver
+      # Read-only configuration staging mount for offline zero-disruption drift audit
+      - ../configs:/opt/ot_configs:ro
+    networks:
+      ot_network:
+        ipv4_address: 172.28.0.50
+    environment:
+      - TZ=Asia/Taipei
+    depends_on:
+      - portainer
+
+  # =========================================================================
+  # 3. Lightweight Modbus Test Node / Simulated Carrier
+  # =========================================================================
+  modbus_sim:
+    image: python:3.11-slim
+    container_name: ot_modbus_simulator
+    restart: unless-stopped
+    command: >
+      sh -c "pip install --no-cache-dir pymodbus &&
+             python -c '
+      import time, logging
+      logging.basicConfig(level=logging.INFO)
+      print(\"Modbus Simulator running on 172.28.0.60:5020...\")
+      while True: time.sleep(3600)
+      '"
+    networks:
+      ot_network:
+        ipv4_address: 172.28.0.60
+    depends_on:
+      - portainer
+
+  # =========================================================================
+  # 4. OpenWrt Industrial Edge Security Gateway (Carrier for otdrift)
+  # =========================================================================
+  openwrt_gateway:
+    image: openwrt/rootfs:x86_64
+    container_name: ot_openwrt_gateway
+    restart: unless-stopped
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - "8081:80"     # OpenWrt LuCI Web Interface
+      - "2222:22"     # OpenWrt Dropbear SSH
+    networks:
+      ot_network:
+        ipv4_address: 172.28.0.2
+    volumes:
+      - ../openwrt/otdrift_edge.py:/usr/bin/otdrift-edge:ro
+      - ../configs/openwrt:/etc/otdrift_configs:ro
+    command: /sbin/init
+    depends_on:
+      - openplc

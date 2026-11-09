@@ -1,0 +1,83 @@
+{
+  "schema_version": "1.0.0",
+  "generator": "otdrift",
+  "timestamp": "2026-09-30T17:00:24.422571+00:00",
+  "audit_summary": {
+    "has_drift": true,
+    "total_drifts": 3,
+    "max_severity": "CRITICAL",
+    "severity_counts": {
+      "CRITICAL": 1,
+      "HIGH": 1,
+      "MEDIUM": 0,
+      "LOW": 1,
+      "INFO": 0
+    }
+  },
+  "artifacts": {
+    "baseline": {
+      "file_name": "baseline.json",
+      "absolute_path": "C:\\Users\\peter\\OneDrive\\Documents\\專題\\configs\\baseline.json",
+      "file_size_bytes": 1534,
+      "sha256": "576922ec506f8d4c8e01525d76d542e965e18f350b981ff991b3be0159e4ef9c",
+      "format": "JSON"
+    },
+    "current": {
+      "file_name": "02_modbus_auth_disabled.json",
+      "absolute_path": "C:\\Users\\peter\\OneDrive\\Documents\\專題\\examples\\scenarios\\02_modbus_auth_disabled.json",
+      "file_size_bytes": 1557,
+      "sha256": "40ca45d7d4a2582bae0360ce6081058a6d4e841a111019cd19732ae612b98f8e",
+      "format": "JSON"
+    }
+  },
+  "drifts": [
+    {
+      "path": "protocols.modbus_tcp.auth_required",
+      "change_type": "MODIFIED",
+      "baseline_value": true,
+      "current_value": false,
+      "description": "Value modified from 'True' to 'False'",
+      "severity": "CRITICAL",
+      "risk_score": 95,
+      "mitre": {
+        "technique_id": "T0812",
+        "technique_name": "Default Credentials",
+        "tactic": "Initial Access / Lateral Movement"
+      },
+      "threat_description": "偵測到 Modbus TCP 身分驗證機制遭關閉 (auth_required = False)。任何連入工控網段之未授權裝置皆可直接向 PLC 發送未授權功能碼 (如 05/06/15/16)，任意讀寫暫存器與線圈，導致實體製程遭惡意操控或產線停擺。",
+      "remediation": "1. 立即隔離該 PLC 網路區段 (VLAN/工控防火牆)。\n2. 透過 Portainer 容器主控台或本機終端將 auth_required 復原為 true。\n3. 稽核周邊 SCADA/HMI 存取日誌，排查是否有非白名單 IP 嘗試建立 Modbus 連線。"
+    },
+    {
+      "path": "protocols.modbus_tcp.allowed_master_ips[2]",
+      "change_type": "LIST_CHANGED",
+      "baseline_value": null,
+      "current_value": "0.0.0.0/0",
+      "description": "Item added to array: 0.0.0.0/0",
+      "severity": "HIGH",
+      "risk_score": 85,
+      "mitre": {
+        "technique_id": "T0855",
+        "technique_name": "Unauthorized Command Message",
+        "tactic": "Impair Process Control"
+      },
+      "threat_description": "Modbus 允許連線的主站白名單 (allowed_master_ips) 發生漂移。非預期的來源 IP 可能獲得向控制器發送控制指令之權限。",
+      "remediation": "1. 審查目前設定中新增的 IP 位址，確認是否為合法的工程維護工作站。\n2. 嚴格限縮白名單至授權之 SCADA/HMI 伺服器 IP。\n3. 阻斷非授權來源 IP 與控制器之間的網路路由。"
+    },
+    {
+      "path": "protocols.modbus_tcp.max_connections",
+      "change_type": "MODIFIED",
+      "baseline_value": 4,
+      "current_value": 16,
+      "description": "Value modified from '4' to '16'",
+      "severity": "LOW",
+      "risk_score": 20,
+      "mitre": {
+        "technique_id": "T0839",
+        "technique_name": "Modify Parameter",
+        "tactic": "Impair Process Control"
+      },
+      "threat_description": "參數 'protocols.modbus_tcp.max_connections' 與黃金標準設定不一致。",
+      "remediation": "審核此項變更是否經過工控變更管理程序 (MOC)，若未授權請予原樣復原。"
+    }
+  ]
+}

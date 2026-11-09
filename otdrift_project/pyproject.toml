@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "otdrift"
+version = "1.0.0"
+description = "OT/ICS Golden Baseline Configuration Drift Detection & MITRE ATT&CK for ICS Security Engine"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "deepdiff>=6.7.0",
+    "pyyaml>=6.0",
+    "rich>=13.7.0",
+    "click>=8.1.0",
+    "jinja2>=3.1.0",
+]
+
+[project.scripts]
+otdrift = "otdrift.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["otdrift*"]

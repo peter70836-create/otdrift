@@ -1,0 +1,69 @@
+# OT/ICS 工控設定飄移與 MITRE ATT&CK 安全稽核報告
+
+> **產出時間**：`2026-09-30T17:01:41.616966+00:00`  
+> **整體安全等級**：**`CRITICAL`**  
+> **飄移參數總數**：`3` 項
+
+## 1. 檔案與環境驗證元資料
+
+| 項目 | 檔案名稱 | SHA-256 Checksum | 格式 |
+| :--- | :--- | :--- | :--- |
+| **黃金標準 (Baseline)** | `baseline.json` | `576922ec506f8d4c8e01525d76d542e965e18f350b981ff991b3be0159e4ef9c` | JSON |
+| **現場現況 (Current)** | `02_modbus_auth_disabled.json` | `40ca45d7d4a2582bae0360ce6081058a6d4e841a111019cd19732ae612b98f8e` | JSON |
+
+## 2. 飄移嚴重度統計
+
+| 嚴重度 (Severity) | 數量 | 說明 |
+| :--- | :---: | :--- |
+| 🔴 **CRITICAL** | 1 | 核心安全機制、身分驗證或韌體/程式邏輯遭更動 |
+| 🟠 **HIGH** | 1 | 遠端管理埠、通訊白名單或作業狀態偏離基準 |
+| 🟡 **MEDIUM** | 0 | 次要安全原則或維護配置變更 |
+| 🔵 **LOW** | 1 | 一般運作設定微調 |
+| ⚪ **INFO** | 0 | 資訊型微小差異 |
+
+## 3. 設定飄移清單與 MITRE ATT&CK for ICS 威脅對應
+
+| 嚴重度 | 參數路徑 | 基準值 (Baseline) | 現況值 (Current) | MITRE ICS 技術 | 戰術分類 (Tactic) |
+| :---: | :--- | :---: | :---: | :---: | :--- |
+| **CRITICAL** | `protocols.modbus_tcp.auth_required` | `True` | `False` | [T0812](https://attack.mitre.org/techniques/T0812/) (Default Credentials) | Initial Access / Lateral Movement |
+| **HIGH** | `protocols.modbus_tcp.allowed_master_ips[2]` | *無* | `0.0.0.0/0` | [T0855](https://attack.mitre.org/techniques/T0855/) (Unauthorized Command Message) | Impair Process Control |
+| **LOW** | `protocols.modbus_tcp.max_connections` | `4` | `16` | [T0839](https://attack.mitre.org/techniques/T0839/) (Modify Parameter) | Impair Process Control |
+
+## 4. 深度資安衝擊與應變處置手冊 (Incident Playbook)
+
+### 1. [CRITICAL] `protocols.modbus_tcp.auth_required`
+- **變更類型**：`MODIFIED`
+- **風險評分**：`95 / 100`
+- **對應 MITRE 框架**：T0812 - *Default Credentials* (Initial Access / Lateral Movement)
+- **威脅場景說明**：
+  > 偵測到 Modbus TCP 身分驗證機制遭關閉 (auth_required = False)。任何連入工控網段之未授權裝置皆可直接向 PLC 發送未授權功能碼 (如 05/06/15/16)，任意讀寫暫存器與線圈，導致實體製程遭惡意操控或產線停擺。
+
+- **建議處置作為 (Remediation Actions)**：
+  - [ ] 1. 立即隔離該 PLC 網路區段 (VLAN/工控防火牆)。
+  - [ ] 2. 透過 Portainer 容器主控台或本機終端將 auth_required 復原為 true。
+  - [ ] 3. 稽核周邊 SCADA/HMI 存取日誌，排查是否有非白名單 IP 嘗試建立 Modbus 連線。
+
+### 2. [HIGH] `protocols.modbus_tcp.allowed_master_ips[2]`
+- **變更類型**：`LIST_CHANGED`
+- **風險評分**：`85 / 100`
+- **對應 MITRE 框架**：T0855 - *Unauthorized Command Message* (Impair Process Control)
+- **威脅場景說明**：
+  > Modbus 允許連線的主站白名單 (allowed_master_ips) 發生漂移。非預期的來源 IP 可能獲得向控制器發送控制指令之權限。
+
+- **建議處置作為 (Remediation Actions)**：
+  - [ ] 1. 審查目前設定中新增的 IP 位址，確認是否為合法的工程維護工作站。
+  - [ ] 2. 嚴格限縮白名單至授權之 SCADA/HMI 伺服器 IP。
+  - [ ] 3. 阻斷非授權來源 IP 與控制器之間的網路路由。
+
+### 3. [LOW] `protocols.modbus_tcp.max_connections`
+- **變更類型**：`MODIFIED`
+- **風險評分**：`20 / 100`
+- **對應 MITRE 框架**：T0839 - *Modify Parameter* (Impair Process Control)
+- **威脅場景說明**：
+  > 參數 'protocols.modbus_tcp.max_connections' 與黃金標準設定不一致。
+
+- **建議處置作為 (Remediation Actions)**：
+  - [ ] 審核此項變更是否經過工控變更管理程序 (MOC)，若未授權請予原樣復原。
+
+---
+*本報告由 `otdrift` 工控自動化飄移比對引擎自動產出，資料具不可否認性雜湊溯源保護。*

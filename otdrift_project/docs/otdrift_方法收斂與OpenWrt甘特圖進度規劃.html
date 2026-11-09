@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>otdrift：方法收斂、OpenWrt 落地架構與 12 月底甘特圖規劃</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+  
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"
+          onload="renderMathInElement(document.body);"></script>
+
+  <style>
+    :root {
+      --primary: #1e3a8a;
+      --primary-light: #3b82f6;
+      --secondary: #0f766e;
+      --accent: #d97706;
+      --danger: #dc2626;
+      --success: #16a34a;
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --code-bg: #1e293b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.68;
+      padding: 32px 20px 80px;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    header {
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+      color: #ffffff;
+      padding: 44px 40px;
+      border-radius: 20px;
+      margin-bottom: 36px;
+      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.25);
+    }
+
+    .badge-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .badge-primary { background: rgba(59, 130, 246, 0.25); color: #93c5fd; border: 1px solid rgba(147, 197, 253, 0.4); }
+    .badge-success { background: rgba(22, 163, 74, 0.25); color: #86efac; border: 1px solid rgba(134, 239, 172, 0.4); }
+    .badge-danger { background: rgba(220, 38, 38, 0.25); color: #fca5a5; border: 1px solid rgba(252, 165, 165, 0.4); }
+    .badge-warning { background: rgba(217, 119, 6, 0.25); color: #fde047; border: 1px solid rgba(253, 224, 71, 0.4); }
+
+    h1 {
+      font-size: 2.2rem;
+      font-weight: 900;
+      line-height: 1.25;
+      margin-bottom: 12px;
+      letter-spacing: -0.5px;
+    }
+
+    .subtitle {
+      font-size: 1.15rem;
+      color: #cbd5e1;
+      font-weight: 400;
+      margin-bottom: 24px;
+    }
+
+    .card {
+      background: var(--surface);
+      border-radius: 16px;
+      padding: 34px 34px;
+      margin-bottom: 28px;
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    h2 {
+      font-size: 1.45rem;
+      font-weight: 800;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding-bottom: 14px;
+      margin-bottom: 22px;
+      border-bottom: 2px solid #f1f5f9;
+    }
+
+    h3 {
+      font-size: 1.18rem;
+      font-weight: 700;
+      color: #1e293b;
+      margin: 22px 0 12px;
+    }
+
+    .table-responsive {
+      overflow-x: auto;
+      margin: 16px 0 24px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.92rem;
+    }
+
+    thead {
+      background-color: #f8fafc;
+      border-bottom: 2px solid var(--border);
+    }
+
+    th {
+      padding: 12px 16px;
+      font-weight: 700;
+      color: #475569;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      color: #334155;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background-color: #f8fafc; }
+
+    pre {
+      background-color: var(--code-bg);
+      color: #e2e8f0;
+      padding: 18px 22px;
+      border-radius: 12px;
+      overflow-x: auto;
+      font-family: 'Fira Code', Consolas, monospace;
+      font-size: 0.88rem;
+      line-height: 1.55;
+      margin: 16px 0 20px;
+    }
+
+    code {
+      font-family: 'Fira Code', Consolas, monospace;
+      background: #f1f5f9;
+      color: #b91c1c;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-size: 0.88em;
+    }
+
+    pre code { background: transparent; color: inherit; padding: 0; }
+
+    .callout {
+      padding: 18px 22px;
+      border-radius: 12px;
+      margin: 20px 0;
+      border-left: 5px solid;
+    }
+
+    .callout-info { background-color: #eff6ff; border-left-color: var(--primary-light); color: #1e40af; }
+    .callout-success { background-color: #f0fdf4; border-left-color: var(--success); color: #166534; }
+    .callout-danger { background-color: #fef2f2; border-left-color: var(--danger); color: #991b1b; }
+    .callout-warning { background-color: #fffbeb; border-left-color: var(--accent); color: #92400e; }
+
+    /* Visual Gantt Bar Chart */
+    .gantt-chart {
+      margin: 24px 0;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .gantt-header {
+      display: grid;
+      grid-template-columns: 240px repeat(8, 1fr);
+      background: #f1f5f9;
+      font-weight: 700;
+      font-size: 0.82rem;
+      border-bottom: 2px solid var(--border);
+      text-align: center;
+    }
+
+    .gantt-header div {
+      padding: 10px 4px;
+      border-right: 1px solid var(--border);
+    }
+
+    .gantt-row {
+      display: grid;
+      grid-template-columns: 240px repeat(8, 1fr);
+      border-bottom: 1px solid #f1f5f9;
+      align-items: center;
+      font-size: 0.86rem;
+    }
+
+    .gantt-row:hover { background: #f8fafc; }
+
+    .gantt-label {
+      padding: 10px 14px;
+      font-weight: 600;
+      border-right: 1px solid var(--border);
+      color: #334155;
+    }
+
+    .gantt-cell {
+      padding: 6px 2px;
+      border-right: 1px solid #f1f5f9;
+      height: 100%;
+      display: flex;
+      align-items: center;
+    }
+
+    .gantt-bar {
+      height: 24px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: 700;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      width: 100%;
+    }
+
+    .bar-blue { background: linear-gradient(90deg, #3b82f6, #2563eb); }
+    .bar-green { background: linear-gradient(90deg, #10b981, #059669); }
+    .bar-amber { background: linear-gradient(90deg, #f59e0b, #d97706); }
+    .bar-red { background: linear-gradient(90deg, #ef4444, #dc2626); }
+    .bar-purple { background: linear-gradient(90deg, #8b5cf6, #7c3aed); }
+
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    
+    <header>
+      <div class="badge-bar">
+        <span class="badge badge-primary">工控資安專案</span>
+        <span class="badge badge-success">✓ 核心方法收斂定錨</span>
+        <span class="badge badge-warning">OpenWrt 工控閘道器落地</span>
+        <span class="badge badge-danger">12 月底正式投稿</span>
+      </div>
+      <h1>otdrift：架構升級、方法收斂與 OpenWrt 落地藍圖</h1>
+      <div class="subtitle">暨 12 月底競賽/論文投稿里程碑與可達成時程進度 (Roadmap & Timeline)</div>
+    </header>
+
+    <!-- Section 1: Convergence -->
+    <section class="card">
+      <h2><span class="icon">🎯</span> 一、 指導教授「方法要收斂」的核心本質剖析</h2>
+      <p>教授在指導會議指出「<strong>方法要收斂 (Methodological Convergence)</strong>」，其深層含意在於：<strong>切忌包山包海、堆疊工具，必須收斂成一條清晰、嚴密、不可替代的學術技術主線</strong>：</p>
+      
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>收斂維度</th>
+              <th>方法發散 (收斂前)</th>
+              <th>聚焦收斂 (收斂後)</th>
+              <th>學術價值與競爭優勢</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>1. 部署載體定位</strong></td>
+              <td>跑在一般電腦/Ubuntu 的分析軟體</td>
+              <td><strong>Purdue 1.5 層 OpenWrt 邊緣安全閘道器</strong></td>
+              <td>符合工控現場實體分層，具備真實軟硬整合落地性。</td>
+            </tr>
+            <tr>
+              <td><strong>2. 工控通訊載體</strong></td>
+              <td>抽象提及多種 OT 協定</td>
+              <td><strong>鎖定 Modbus TCP (Port 502) / RTU</strong></td>
+              <td>全球最通用工控骨幹，文獻與測試台最容易被審查人信服。</td>
+            </tr>
+            <tr>
+              <td><strong>3. 差分比對演算法</strong></td>
+              <td>單純調用第三方 DeepDiff 輸出字串</td>
+              <td><strong>加權樹編輯距離 (W-STED) + 不變量約束</strong></td>
+              <td>提供嚴謹數學形式化定義與歸一化飄移指數 ($NDI \in [0, 1]$)。</td>
+            </tr>
+            <tr>
+              <td><strong>4. 實驗評測基準</strong></td>
+              <td>實驗室 4 筆手工造假 Toy Example</td>
+              <td><strong>SUTD SWaT 權威基準 (100 樣本全矩陣)</strong></td>
+              <td>國際公認測試集，數據具備權威性與高說服力。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Section 2: Architecture Enhancements -->
+    <section class="card">
+      <h2><span class="icon">💡</span> 二、 目前整體架構的三大改進空間與強化方案</h2>
+
+      <div class="callout callout-info">
+        <h3>1. 距離計算昇華：從「個別規則扣分」升級為「全系統加權樹編輯距離 (W-STED)」</h3>
+        <p>將組態狀態空間抽象為階層樹 \(T=(V, E)\)，每一層賦予 Purdue 模型安全權重 \(w_l\)：</p>
+        <p>\[D(T_0, T_t) = \sum_{e \in \Delta} w(e) \cdot \delta(v_0, v_t)\]</p>
+        <ul>
+          <li><strong>製程不變量層（Process Registers）</strong>：\(w_P = 1.0\) (最高危險)</li>
+          <li><strong>控制邏輯與模式（Logic / Mode）</strong>：\(w_L = 0.9\)</li>
+          <li><strong>通訊身分驗證（Protocols）</strong>：\(w_C = 0.8\)</li>
+          <li><strong>網關存取管理（Management）</strong>：\(w_M = 0.5\)</li>
+          <li><strong>設備環境元數據（Environment）</strong>：\(w_E = 0.2\)</li>
+        </ul>
+        <p>定義 <strong>歸一化飄移指數 (Normalized Drift Index, \(NDI \in [0, 1]\))</strong>，使系統飄移程度具備完全可量化、可比較的數學閉環。</p>
+      </div>
+
+      <div class="callout callout-warning">
+        <h3>2. 加入「物理互鎖不變量 (Physical Invariant Constraints)」判定</h3>
+        <p>對齊頂會 <strong>USENIX Security 2025 (<em>GeCos</em>)</strong> 理論，在規則庫加入關聯式物理不變量：</p>
+        <p>\[\text{Invariant 1: } \text{lit101\_low\_level} < \text{lit101\_high\_level} < \text{lit101\_overflow}\]</p>
+        <p>\[\text{Invariant 2: } \text{if pump\_mode == FORCE\_ON} \implies \text{pressure} \le \text{cutoff\_psi}\]</p>
+        <p>只要攻擊者修改的數值違反物理互鎖，即便在合法數值區間內，依然直接判定為 <strong>CRITICAL 製程威脅</strong>。</p>
+      </div>
+
+      <div class="callout callout-success">
+        <h3>3. OpenWrt 網關「雙軌審計 (Dual-Track Auditing)」</h3>
+        <p>OpenWrt 網關同時負責維護工控防火牆與 Modbus 轉發。<code>otdrift</code> 在 OpenWrt 上同時審計兩條軌道：</p>
+        <ol style="margin-left: 20px;">
+          <li><strong>下向軌道 (Southbound)</strong>：定時透過 Modbus TCP (FC 03) 審計 PLC 暫存器。</li>
+          <li><strong>本機軌道 (Local Track)</strong>：即時審計 OpenWrt 本機 UCI 組態檔（<code>/etc/config/firewall</code>），防止攻擊者竄改網關防火牆白名單！</li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- Section 3: OpenWrt Architecture -->
+    <section class="card">
+      <h2><span class="icon">⚙️</span> 三、 OpenWrt 工控閘道器落地架構設計</h2>
+      <pre><code>┌────────────────────────────────────────────────────────┐
+│               Level 2 控制室 SCADA / HMI                │
+└───────────────────────────┬────────────────────────────┘
+                            │ (WAN: 192.168.1.0/24)
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│  🛡️ Purdue 1.5 層【OpenWrt 工控邊緣安全閘道器】         │
+│  (支援 x86 VM / 工控路由器 / 樹莓派，RAM 需求僅 < 40MB) │
+│                                                        │
+│  ┌──────────────────────────────────────────────────┐  │
+│  │ 1. UCI 網關安全組態審計模組                      │  │
+│  │    • 監控 /etc/config/firewall (Port 502 白名單) │  │
+│  │    • 監控 /etc/config/network (VLAN / 路由隔離)   │  │
+│  └──────────────────────────────────────────────────┘  │
+│  ┌──────────────────────────────────────────────────┐  │
+│  │ 2. Modbus 邊緣被動採集器 (Lightweight Harvester)  │  │
+│  │    • 極簡 Python / Lua 腳本，記憶體小於 10MB     │  │
+│  │    • 透過 FC 03 提取現場保持暫存器快照           │  │
+│  └──────────────────────────────────────────────────┘  │
+│  ┌──────────────────────────────────────────────────┐  │
+│  │ 3. otdrift-core 樹狀差分與不變量推理引擎         │  │
+│  │    • 計算 W-STED 距離與 MITRE T0839/T0855 映射   │  │
+│  │    • 觸發 iptables 阻斷未授權 IP 或回滾暫存器    │  │
+│  └──────────────────────────────────────────────────┘  │
+└───────────────────────────┬────────────────────────────┘
+                            │ (LAN: 172.28.0.0/16 現場隔離網段)
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│             Level 1 現場實體：OpenPLC 工控載體          │
+│             (Port 502: 保持暫存器 0 = 85 psi)          │
+└────────────────────────────────────────────────────────┘</code></pre>
+    </section>
+
+    <!-- Section 4: Roadmap Gantt Chart -->
+    <section class="card">
+      <h2><span class="icon">📊</span> 四、 邁向 12 月底投稿之甘特圖 (Gantt Chart & Roadmap)</h2>
+      <p>以 <strong>8 週（2026/10/29 ～ 2026/12/25）</strong> 為期，規劃高可行性、明確分工之衝刺路徑：</p>
+
+      <!-- Visual Gantt Bar Chart -->
+      <div class="gantt-chart">
+        <div class="gantt-header">
+          <div style="text-align: left; padding-left: 14px;">工作任務 / 交付項目</div>
+          <div>W1 (10/29)</div>
+          <div>W2 (11/05)</div>
+          <div>W3 (11/12)</div>
+          <div>W4 (11/19)</div>
+          <div>W5 (11/26)</div>
+          <div>W6 (12/03)</div>
+          <div>W7 (12/10)</div>
+          <div>W8 (12/17)</div>
+        </div>
+
+        <div class="gantt-row">
+          <div class="gantt-label">W-STED 加權距離演算法</div>
+          <div class="gantt-cell"><div class="gantt-bar bar-blue">已完成</div></div>
+          <div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div>
+        </div>
+
+        <div class="gantt-row">
+          <div class="gantt-label">物理不變量約束 (GeCos)</div>
+          <div class="gantt-cell"></div>
+          <div class="gantt-cell"><div class="gantt-bar bar-blue">進行中</div></div>
+          <div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div>
+        </div>
+
+        <div class="gantt-row">
+          <div class="gantt-label">OpenWrt 虛擬網關搭建</div>
+          <div class="gantt-cell"><div class="gantt-bar bar-green">已完成</div></div>
+          <div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div>
+        </div>
+
+        <div class="gantt-row">
+          <div class="gantt-label">UCI 防火牆解析器</div>
+          <div class="gantt-cell"></div>
+          <div class="gantt-cell"><div class="gantt-bar bar-green">開發</div></div>
+          <div class="gantt-cell"><div class="gantt-bar bar-green">測試</div></div>
+          <div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div>
+        </div>
+
+        <div class="gantt-row">
+          <div class="gantt-label">雙軌聯合審計 (Modbus+UCI)</div>
+          <div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div>
+          <div class="gantt-cell"><div class="gantt-bar bar-green">整合</div></div>
+          <div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div>
+        </div>
+
+        <div class="gantt-row">
+          <div class="gantt-label">SWaT 評測擴充 (300樣本)</div>
+          <div class="gantt-cell"></div><div class="gantt-cell"></div>
+          <div class="gantt-cell"><div class="gantt-bar bar-amber">批次</div></div>
+          <div class="gantt-cell"><div class="gantt-bar bar-amber">ROC</div></div>
+          <div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div>
+        </div>
+
+        <div class="gantt-row">
+          <div class="gantt-label">網關閉環防禦 (iptables)</div>
+          <div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div>
+          <div class="gantt-cell"><div class="gantt-bar bar-purple">實測</div></div>
+          <div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div>
+        </div>
+
+        <div class="gantt-row">
+          <div class="gantt-label">論文草稿 (Intro/Related)</div>
+          <div class="gantt-cell"><div class="gantt-bar bar-purple">初稿</div></div>
+          <div class="gantt-cell"><div class="gantt-bar bar-purple">修訂</div></div>
+          <div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div>
+        </div>
+
+        <div class="gantt-row">
+          <div class="gantt-label">論文核心 (Arch/Exp/Eval)</div>
+          <div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div>
+          <div class="gantt-cell"><div class="gantt-bar bar-purple">撰寫</div></div>
+          <div class="gantt-cell"><div class="gantt-bar bar-purple">完成</div></div>
+          <div class="gantt-cell"></div><div class="gantt-cell"></div>
+        </div>
+
+        <div class="gantt-row">
+          <div class="gantt-label">實機 Live Demo 展演準備</div>
+          <div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div>
+          <div class="gantt-cell"><div class="gantt-bar bar-amber">彩排</div></div>
+          <div class="gantt-cell"></div>
+        </div>
+
+        <div class="gantt-row" style="background: #fef2f2;">
+          <div class="gantt-label" style="font-weight: 800; color: #dc2626;">★ 12/25 正式送出投稿 ★</div>
+          <div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div>
+          <div class="gantt-cell"><div class="gantt-bar bar-red">審閱</div></div>
+          <div class="gantt-cell"><div class="gantt-bar bar-red">★ 投稿</div></div>
+        </div>
+      </div>
+
+      <div class="mermaid">
+flowchart TD
+    subgraph P1["【第 1~2 週：10/29 - 11/11】 核心模型收斂與 OpenWrt 原型"]
+        T1["加權樹編輯距離 (W-STED) 數學演算法實作"]
+        T2["物理不變量互鎖約束規則擴充 (對齊 GeCos)"]
+        T3["OpenWrt 虛擬閘道節點拓撲與環境搭建"]
+        T4["SWaT 100 樣本基準對齊與評測結果固化"]
+        T1 --> T2
+        T3 --> T4
+    end
+
+    subgraph P2["【第 3~4 週：11/12 - 11/25】 雙軌審計串接與大規模資料評測"]
+        T5["OpenWrt UCI 防火牆組態解析器 (uci_parser.py)"]
+        T6["下向 Modbus + 本機 UCI 雙軌聯合審計整合"]
+        T7["擴充至 300 筆樣本批次評測 (ROC/混淆矩陣/延遲)"]
+        T8["論文草稿：Introduction 與 Related Work 完成"]
+        T5 --> T6
+        T7 --> T8
+    end
+
+    subgraph P3["【第 5~6 週：11/26 - 12/09】 閉環防禦實作與論文核心撰寫"]
+        T9["網關層閉環防禦實作 (iptables 動態阻斷 + 暫存器復原)"]
+        T10["全管線自動化回歸測試 (單元測試擴充至 30+ 項)"]
+        T11["論文核心章節：System Architecture & Math Formulation"]
+        T12["論文實驗章節：Experimental Evaluation 數據定稿"]
+        T9 --> T10
+        T11 --> T12
+    end
+
+    subgraph P4["【第 7~8 週：12/10 - 12/25】 實機 Live Demo 展演與論文投稿"]
+        T13["OpenWrt 實機 Demo 展演環境與防呆腳本封裝"]
+        T14["指導教授全文審閱、實驗複驗與修正修改"]
+        T15["★ 12 月 25 日：正式送出研討會 / 大專生競賽投稿 ★"]
+        T13 --> T14
+        T14 --> T15
+    end
+
+    P1 --> P2
+    P2 --> P3
+    P3 --> P4
+      </div>
+    </section>
+
+    <!-- Section 5: Team Deliverables -->
+    <section class="card">
+      <h2><span class="icon">👥</span> 五、 三人團隊每週明確交付清單 (Weekly Deliverables)</h2>
+      
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>週次</th>
+              <th>時間區間</th>
+              <th>組長（演算法與架構）</th>
+              <th>組員 A（評測資料集工程）</th>
+              <th>組員 B（文獻與論文撰寫）</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>W1</strong></td>
+              <td>10/29 - 11/04</td>
+              <td>實作 W-STED 加權距離計算模組，收斂數學模型</td>
+              <td>整理 SWaT 攻擊對照表，固化 100 筆測試樣本</td>
+              <td>研讀 3 篇工控組態飄移頂會論文，撰寫文獻筆記</td>
+            </tr>
+            <tr>
+              <td><strong>W2</strong></td>
+              <td>11/05 - 11/11</td>
+              <td>建立 OpenWrt 虛擬閘道節點，測試 Python 運行</td>
+              <td>構建 300 筆合成干擾資料集（加入隨機時序雜訊）</td>
+              <td>完成論文 Introduction 與 Related Work 初稿</td>
+            </tr>
+            <tr>
+              <td><strong>W3</strong></td>
+              <td>11/12 - 11/18</td>
+              <td>開發 OpenWrt UCI 防火牆組態解析器</td>
+              <td>跑出 Precision/Recall/F1 與 ROC 曲線圖</td>
+              <td>整理 Purdue 五層階層結構與形式化數學章節</td>
+            </tr>
+            <tr>
+              <td><strong>W4</strong></td>
+              <td>11/19 - 11/25</td>
+              <td>串接「網關 UCI + PLC 暫存器」雙軌聯合審計</td>
+              <td>測試 OpenWrt 邊緣端 CPU、記憶體佔用與延遲</td>
+              <td>繪製系統全管線圖與 OpenWrt 部署拓撲向量圖</td>
+            </tr>
+            <tr>
+              <td><strong>W5</strong></td>
+              <td>11/26 - 12/02</td>
+              <td>實作閉環自動隔離（動態寫入 iptables 阻斷黑名單）</td>
+              <td>產出完整評測實驗數據表（對比傳統 diff 工具）</td>
+              <td>撰寫 System Architecture 與 Implementation 章節</td>
+            </tr>
+            <tr>
+              <td><strong>W6</strong></td>
+              <td>12/03 - 12/09</td>
+              <td>全管線整合與自動化回歸測試 (單元測試 > 30 項)</td>
+              <td>產出動態攻擊/回滾 Demo 錄影與可視化數據</td>
+              <td>撰寫 Experimental Evaluation 章節</td>
+            </tr>
+            <tr>
+              <td><strong>W7</strong></td>
+              <td>12/10 - 12/16</td>
+              <td>準備實機 Live Demo 展演環境與防呆腳本</td>
+              <td>整理 SWaT 與 OpenPLC 完整實驗附件與開原始碼</td>
+              <td>全文統整編排（符合研討會/大專生格式排版）</td>
+            </tr>
+            <tr>
+              <td><strong>W8</strong></td>
+              <td>12/17 - 12/25</td>
+              <td>協助指導教授審閱修改，封裝專案 Release</td>
+              <td>交叉驗證所有實驗數據正確性</td>
+              <td><strong>★ 12 月 25 日完成全文完稿並正式送出投稿！</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </div>
+
+</body>
+</html>

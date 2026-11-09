@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "_scenario_metadata": {
+    "scenario_id": "SCN-CNC-04",
+    "name": "未授權遠端代碼置換與白名單擴大 (Unauthorized NC Code Download)",
+    "description": "攻擊者突破網路邊界，將 Modbus 白名單擴大至惡意主機 (192.168.10.99)，啟用 allow_remote_programming 權限，並將正在加工之 NC G-Code 數位指紋替換為惡意破壞程式碼。",
+    "target_mitre": "T0843 - Program Download / T0855 - Unauthorized Command",
+    "expected_severity": "CRITICAL"
+  },
+  "device_info": {
+    "name": "NCHU-SmartCell-CNC-01",
+    "model": "VMC-850-Precision-Machining-Center",
+    "controller": "Sinumerik-840D-sl / S7-1500",
+    "vendor": "NCHU Smart Manufacturing Testbed",
+    "location": "Taichung-Precision-Machinery-Lab",
+    "firmware_version": "v4.95-SP2-PROD",
+    "serial_number": "CNC-2026-NCHU-001"
+  },
+  "process_machining": {
+    "spindle_max_rpm": 10000,
+    "spindle_rated_load_pct": 85,
+    "feed_rate_limit_mm_min": 1200,
+    "rapid_traverse_rate_mm_min": 24000,
+    "cutting_depth_max_mm": 5.0,
+    "spindle_cooling_mode": "FLOOD_COOLANT"
+  },
+  "tool_offset": {
+    "tool_01_id": "T01-FACE-MILL-50MM",
+    "tool_01_length_offset_mm": 125.45,
+    "tool_01_wear_compensation_mm": 0.00,
+    "tool_02_id": "T02-END-MILL-10MM",
+    "tool_02_length_offset_mm": 98.12,
+    "tool_02_wear_compensation_mm": 0.00,
+    "tolerance_limit_mm": 0.02
+  },
+  "safety_interlocks": {
+    "coolant_pressure_min_bar": 3.5,
+    "safety_door_bypass": false,
+    "emergency_stop_tripped": false,
+    "spindle_overload_protection": true,
+    "vibration_sensor_threshold_g": 1.2
+  },
+  "comm_policy": {
+    "modbus_tcp": {
+      "enabled": true,
+      "port": 502,
+      "auth_required": false,
+      "allowed_master_ips": [
+        "172.28.0.10",
+        "192.168.10.99"
+      ],
+      "max_connections": 8,
+      "station_id": 1,
+      "timeout_ms": 2000
+    },
+    "allow_remote_programming": true,
+    "web_admin_enabled": true,
+    "web_admin_port": 8080
+  },
+  "system_integrity": {
+    "cnc_mode": "AUTO_RUN",
+    "watchdog_timer_ms": 250,
+    "active_nc_program": "BACKDOOR_MILL_MALICIOUS.NC",
+    "nc_program_checksum": "a8f5c381d649e9b04f210e53a25b7419f182c354789d6e4b10fa23597bce6281",
+    "read_only_registers": [
+      "%MW0-%MW10"
+    ]
+  }
+}

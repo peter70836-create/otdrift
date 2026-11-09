@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OT/ICS 工控設定飄移與 MITRE ATT&CK 稽核報告</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --card-border: #334155;
+            --text-color: #f1f5f9;
+            --text-muted: #94a3b8;
+            --accent: #38bdf8;
+            --critical: #ef4444;
+            --high: #f97316;
+            --medium: #eab308;
+            --low: #06b6d4;
+            --clean: #10b981;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: 24px;
+        }
+        .container { max-width: 1300px; margin: 0 auto; }
+        .header {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 28px;
+            margin-bottom: 24px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .header h1 { font-size: 24px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 10px; }
+        .header-sub { color: var(--text-muted); font-size: 13px; margin-top: 6px; }
+        .kpi-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .kpi-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            transition: transform 0.2s;
+        }
+        .kpi-card:hover { transform: translateY(-2px); }
+        .kpi-value { font-size: 32px; font-weight: 800; margin: 8px 0; }
+        .kpi-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); }
+
+        .meta-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        @media (max-width: 768px) { .meta-grid { grid-template-columns: 1fr; } }
+        .meta-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            padding: 16px 20px;
+            font-size: 13px;
+        }
+        .meta-card strong { color: var(--accent); }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 28px 0 14px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 8px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            overflow: hidden;
+            font-size: 13px;
+        }
+        th, td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--card-border);
+        }
+        th {
+            background: #111827;
+            color: #94a3b8;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.6px;
+        }
+        tr:hover td { background: rgba(255, 255, 255, 0.02); }
+        code {
+            background: rgba(0, 0, 0, 0.3);
+            color: #38bdf8;
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 12px;
+        }
+        .code-val { font-family: monospace; font-size: 12px; }
+        .code-val.highlight { color: #fb923c; font-weight: bold; }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 9999px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #fff;
+            text-align: center;
+        }
+        .bg-secondary { background-color: #475569; }
+        .bg-dark { background-color: #0f172a; border: 1px solid #334155; }
+        .bg-info { background-color: #0284c7; }
+
+        .mitre-badge {
+            color: #38bdf8;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .mitre-badge:hover { text-decoration: underline; }
+        .risk-pill {
+            background: #334155;
+            color: #f8fafc;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+        .card-header {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 12px 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--card-border);
+        }
+        .card-body { padding: 18px; }
+        .threat-box {
+            background: rgba(239, 68, 68, 0.08);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            padding: 12px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+        .remediation-box {
+            background: rgba(16, 185, 129, 0.08);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            padding: 12px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+        .task-list { list-style: none; }
+        .task-list li { margin-bottom: 6px; }
+        .task-list label { cursor: pointer; display: flex; align-items: center; gap: 8px; }
+
+        .filter-btn {
+            background: var(--card-bg);
+            color: var(--text-muted);
+            border: 1px solid var(--card-border);
+            padding: 5px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-left: 6px;
+        }
+        .filter-btn.active {
+            background: var(--accent);
+            color: #0f172a;
+            font-weight: bold;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            color: var(--text-muted);
+            font-size: 12px;
+            border-top: 1px solid var(--card-border);
+            padding-top: 20px;
+        }
+
+        @media print {
+            body { background: #fff; color: #000; padding: 0; }
+            .header, .kpi-card, table, .card, .meta-card { background: #fff !important; color: #000 !important; border: 1px solid #ddd !important; }
+            .badge { color: #000 !important; border: 1px solid #000; }
+            .filter-btn { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div>
+                <h1>🛡 OT/ICS 設定飄移與 MITRE ATT&CK 資安稽核報告</h1>
+                <div class="header-sub">
+                    <span>比對時間：<strong>2026-09-30T17:00:24.422571+00:00</strong></span> |
+                    <span>稽核引擎：<strong>otdrift v1.0</strong></span> |
+                    <span>底層載體：<strong>OpenPLC Runtime (Portainer Managed)</strong></span>
+                </div>
+            </div>
+            <div>
+                <span class="badge" style="font-size: 16px; padding: 10px 22px; background-color: #ef4444;">
+                    狀態評級：CRITICAL
+                </span>
+            </div>
+        </header>
+
+        <!-- KPI Metrics -->
+        <div class="kpi-row">
+            <div class="kpi-card">
+                <div class="kpi-label">飄移參數總計</div>
+                <div class="kpi-value" style="color: var(--accent);">3</div>
+                <small class="text-muted">項受檢參數異動</small>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">嚴重風險 (CRITICAL)</div>
+                <div class="kpi-value" style="color: var(--critical);">1</div>
+                <small class="text-muted">需立即緊急應變處置</small>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">高風險 (HIGH)</div>
+                <div class="kpi-value" style="color: var(--high);">1</div>
+                <small class="text-muted">攻擊面顯著擴大</small>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">中/低風險 (MED/LOW)</div>
+                <div class="kpi-value" style="color: var(--medium);">1</div>
+                <small class="text-muted">組態管理偏離基準</small>
+            </div>
+        </div>
+
+        <!-- Meta Grid -->
+        <div class="meta-grid">
+            <div class="meta-card">
+                <strong>📌 黃金標準 (Baseline):</strong> baseline.json<br>
+                <strong>路徑:</strong> C:\Users\peter\OneDrive\Documents\專題\configs\baseline.json<br>
+                <strong>SHA-256:</strong> <code>576922ec506f8d4c8e01525d76d542e965e18f350b981ff991b3be0159e4ef9c</code>
+            </div>
+            <div class="meta-card">
+                <strong>🔍 現場現況 (Current):</strong> 02_modbus_auth_disabled.json<br>
+                <strong>路徑:</strong> C:\Users\peter\OneDrive\Documents\專題\examples\scenarios\02_modbus_auth_disabled.json<br>
+                <strong>SHA-256:</strong> <code>40ca45d7d4a2582bae0360ce6081058a6d4e841a111019cd19732ae612b98f8e</code>
+            </div>
+        </div>
+
+        <!-- Drift Details Table -->
+        <div class="section-title">
+            <span>📊 參數飄移矩陣與工控框架對應</span>
+            <div>
+                <button class="filter-btn active" onclick="filterDrifts('ALL')">全部 (3)</button>
+                <button class="filter-btn" onclick="filterDrifts('CRITICAL')">Critical</button>
+                <button class="filter-btn" onclick="filterDrifts('HIGH')">High</button>
+                <button class="filter-btn" onclick="filterDrifts('MEDIUM')">Medium</button>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 100px; text-align: center;">嚴重度</th>
+                    <th>參數路徑 (Parameter Path)</th>
+                    <th>黃金標準 (Baseline)</th>
+                    <th>現場現況 (Current)</th>
+                    <th>MITRE ICS 技術</th>
+                    <th>戰術 (Tactic)</th>
+                    <th style="text-align: center;">風險值</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+            <tr class="drift-row" data-severity="CRITICAL">
+                <td style="text-align:center;"><span class="badge" style="background-color: #ef4444;">CRITICAL</span></td>
+                <td><code>protocols.modbus_tcp.auth_required</code></td>
+                <td class="code-val">True</td>
+                <td class="code-val highlight">False</td>
+                <td><a href='https://attack.mitre.org/techniques/T0812/' target='_blank' class='mitre-badge'>T0812</a> <small class="text-muted d-block">Default Credentials</small></td>
+                <td><span class="badge bg-secondary">Initial Access / Lateral Movement</span></td>
+                <td style="text-align:center;"><span class="risk-pill">95</span></td>
+            </tr>
+            
+            <tr class="drift-row" data-severity="HIGH">
+                <td style="text-align:center;"><span class="badge" style="background-color: #f97316;">HIGH</span></td>
+                <td><code>protocols.modbus_tcp.allowed_master_ips[2]</code></td>
+                <td class="code-val"><span class='text-muted'>--</span></td>
+                <td class="code-val highlight">0.0.0.0/0</td>
+                <td><a href='https://attack.mitre.org/techniques/T0855/' target='_blank' class='mitre-badge'>T0855</a> <small class="text-muted d-block">Unauthorized Command Message</small></td>
+                <td><span class="badge bg-secondary">Impair Process Control</span></td>
+                <td style="text-align:center;"><span class="risk-pill">85</span></td>
+            </tr>
+            
+            <tr class="drift-row" data-severity="LOW">
+                <td style="text-align:center;"><span class="badge" style="background-color: #06b6d4;">LOW</span></td>
+                <td><code>protocols.modbus_tcp.max_connections</code></td>
+                <td class="code-val">4</td>
+                <td class="code-val highlight">16</td>
+                <td><a href='https://attack.mitre.org/techniques/T0839/' target='_blank' class='mitre-badge'>T0839</a> <small class="text-muted d-block">Modify Parameter</small></td>
+                <td><span class="badge bg-secondary">Impair Process Control</span></td>
+                <td style="text-align:center;"><span class="risk-pill">20</span></td>
+            </tr>
+            
+            </tbody>
+        </table>
+
+        <!-- Incident & Remediation Playbook -->
+        <div class="section-title">
+            <span>🚨 處置因應指南與事件調查指引 (Incident Playbook)</span>
+        </div>
+
+        <div>
+            
+            <div class="card mb-3 border-left" style="border-left: 5px solid #ef4444;">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="badge" style="background-color: #ef4444;">CRITICAL</span>
+                        <strong class="ml-2 font-mono">protocols.modbus_tcp.auth_required</strong>
+                    </div>
+                    <div>
+                        <span class="badge bg-dark">MITRE: T0812</span>
+                        <span class="badge bg-info">Score: 95/100</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="threat-box">
+                        <strong style="color: #dc2626;">⚠ 威脅衝擊分析：</strong>
+                        <p class="mb-2 mt-1">偵測到 Modbus TCP 身分驗證機制遭關閉 (auth_required = False)。任何連入工控網段之未授權裝置皆可直接向 PLC 發送未授權功能碼 (如 05/06/15/16)，任意讀寫暫存器與線圈，導致實體製程遭惡意操控或產線停擺。</p>
+                    </div>
+                    <div class="remediation-box mt-3">
+                        <strong style="color: #16a34a;">🛡 建議應變作為 (Remediation Actions)：</strong>
+                        <ul class="task-list mt-2">
+                            <li><label><input type='checkbox'> 立即隔離該 PLC 網路區段 (VLAN/工控防火牆)。</label></li><li><label><input type='checkbox'> 透過 Portainer 容器主控台或本機終端將 auth_required 復原為 true。</label></li><li><label><input type='checkbox'> 稽核周邊 SCADA/HMI 存取日誌，排查是否有非白名單 IP 嘗試建立 Modbus 連線。</label></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-3 border-left" style="border-left: 5px solid #f97316;">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="badge" style="background-color: #f97316;">HIGH</span>
+                        <strong class="ml-2 font-mono">protocols.modbus_tcp.allowed_master_ips[2]</strong>
+                    </div>
+                    <div>
+                        <span class="badge bg-dark">MITRE: T0855</span>
+                        <span class="badge bg-info">Score: 85/100</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="threat-box">
+                        <strong style="color: #dc2626;">⚠ 威脅衝擊分析：</strong>
+                        <p class="mb-2 mt-1">Modbus 允許連線的主站白名單 (allowed_master_ips) 發生漂移。非預期的來源 IP 可能獲得向控制器發送控制指令之權限。</p>
+                    </div>
+                    <div class="remediation-box mt-3">
+                        <strong style="color: #16a34a;">🛡 建議應變作為 (Remediation Actions)：</strong>
+                        <ul class="task-list mt-2">
+                            <li><label><input type='checkbox'> 審查目前設定中新增的 IP 位址，確認是否為合法的工程維護工作站。</label></li><li><label><input type='checkbox'> 嚴格限縮白名單至授權之 SCADA/HMI 伺服器 IP。</label></li><li><label><input type='checkbox'> 阻斷非授權來源 IP 與控制器之間的網路路由。</label></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-3 border-left" style="border-left: 5px solid #06b6d4;">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="badge" style="background-color: #06b6d4;">LOW</span>
+                        <strong class="ml-2 font-mono">protocols.modbus_tcp.max_connections</strong>
+                    </div>
+                    <div>
+                        <span class="badge bg-dark">MITRE: T0839</span>
+                        <span class="badge bg-info">Score: 20/100</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="threat-box">
+                        <strong style="color: #dc2626;">⚠ 威脅衝擊分析：</strong>
+                        <p class="mb-2 mt-1">參數 &#x27;protocols.modbus_tcp.max_connections&#x27; 與黃金標準設定不一致。</p>
+                    </div>
+                    <div class="remediation-box mt-3">
+                        <strong style="color: #16a34a;">🛡 建議應變作為 (Remediation Actions)：</strong>
+                        <ul class="task-list mt-2">
+                            <li><label><input type='checkbox'> 審核此項變更是否經過工控變更管理程序 (MOC)，若未授權請予原樣復原。</label></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>本報告由 <code>otdrift</code> 工控組態自動化飄移比對引擎自動生成 | 適用於 IEC 62443 / MITRE ATT&CK for ICS 規範</p>
+        </div>
+    </div>
+
+    <script>
+        function filterDrifts(level) {
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            document.querySelectorAll('.drift-row').forEach(row => {
+                if (level === 'ALL' || row.getAttribute('data-severity') === level) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

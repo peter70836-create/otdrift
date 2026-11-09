@@ -1,0 +1,34 @@
+# Custom Security Drift Evaluation Rules for OT/ICS Environment
+# Extends built-in rules with plant-specific compliance checks
+rules:
+  - id: "RULE-CUSTOM-001"
+    path: "network.dhcp_enabled"
+    name: "靜態 IP 政策違規 (啟用 DHCP)"
+    severity: "HIGH"
+    risk_score: 75
+    mitre_technique_id: "T0886"
+    threat_description: "工控 PLC 啟用 DHCP (dhcp_enabled = {current_val})，可能導致 IP 位址隨租期變更，造成 SCADA 監控脫節或遭受惡意 Rogue DHCP 劫持。"
+    remediation: |
+      1. 立即於 OpenPLC 載體網路設定中停用 DHCP。
+      2. 重新設定黃金標準固定靜態 IP (192.168.10.50/24)。
+
+  - id: "RULE-CUSTOM-002"
+    path: "protocols.dnp3.enabled"
+    name: "未授權之 DNP3 通訊協定遭開啟"
+    severity: "HIGH"
+    risk_score: 80
+    mitre_technique_id: "T0885"
+    threat_description: "偵測到未核准之 DNP3 協定被啟動 (dnp3.enabled = {current_val})，擴大非必要的攻擊面。"
+    remediation: |
+      1. 關閉 DNP3 服務 (protocols.dnp3.enabled: false)。
+      2. 稽核防火牆是否有 20000 埠的放行記錄。
+
+  - id: "RULE-CUSTOM-003"
+    path: "safety_and_integrity.watchdog_timer_ms"
+    name: "硬體看門狗計時器 (Watchdog) 異常異動"
+    severity: "MEDIUM"
+    risk_score: 65
+    mitre_technique_id: "T0836"
+    threat_description: "看門狗逾時時間由 {baseline_val} ms 變更為 {current_val} ms。過長的看門狗可能導致當機時無法即時觸發安全停機。"
+    remediation: |
+      1. 將看門狗計時器校準回標準值 500 ms。

@@ -1,0 +1,34 @@
+{
+  "schema_version": "1.0.0",
+  "generator": "otdrift",
+  "timestamp": "2026-09-30T17:00:21.826180+00:00",
+  "audit_summary": {
+    "has_drift": false,
+    "total_drifts": 0,
+    "max_severity": "CLEAN",
+    "severity_counts": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 0,
+      "LOW": 0,
+      "INFO": 0
+    }
+  },
+  "artifacts": {
+    "baseline": {
+      "file_name": "baseline.json",
+      "absolute_path": "C:\\Users\\peter\\OneDrive\\Documents\\專題\\configs\\baseline.json",
+      "file_size_bytes": 1534,
+      "sha256": "576922ec506f8d4c8e01525d76d542e965e18f350b981ff991b3be0159e4ef9c",
+      "format": "JSON"
+    },
+    "current": {
+      "file_name": "01_normal_running.json",
+      "absolute_path": "C:\\Users\\peter\\OneDrive\\Documents\\專題\\examples\\scenarios\\01_normal_running.json",
+      "file_size_bytes": 1534,
+      "sha256": "576922ec506f8d4c8e01525d76d542e965e18f350b981ff991b3be0159e4ef9c",
+      "format": "JSON"
+    }
+  },
+  "drifts": []
+}

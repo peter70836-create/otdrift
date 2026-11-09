@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OT/ICS 工控設定飄移與 MITRE ATT&CK 稽核報告</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --card-border: #334155;
+            --text-color: #f1f5f9;
+            --text-muted: #94a3b8;
+            --accent: #38bdf8;
+            --critical: #ef4444;
+            --high: #f97316;
+            --medium: #eab308;
+            --low: #06b6d4;
+            --clean: #10b981;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: 24px;
+        }
+        .container { max-width: 1300px; margin: 0 auto; }
+        .header {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 28px;
+            margin-bottom: 24px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .header h1 { font-size: 24px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 10px; }
+        .header-sub { color: var(--text-muted); font-size: 13px; margin-top: 6px; }
+        .kpi-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .kpi-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            transition: transform 0.2s;
+        }
+        .kpi-card:hover { transform: translateY(-2px); }
+        .kpi-value { font-size: 32px; font-weight: 800; margin: 8px 0; }
+        .kpi-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); }
+
+        .meta-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        @media (max-width: 768px) { .meta-grid { grid-template-columns: 1fr; } }
+        .meta-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            padding: 16px 20px;
+            font-size: 13px;
+        }
+        .meta-card strong { color: var(--accent); }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 28px 0 14px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 8px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            overflow: hidden;
+            font-size: 13px;
+        }
+        th, td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--card-border);
+        }
+        th {
+            background: #111827;
+            color: #94a3b8;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.6px;
+        }
+        tr:hover td { background: rgba(255, 255, 255, 0.02); }
+        code {
+            background: rgba(0, 0, 0, 0.3);
+            color: #38bdf8;
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 12px;
+        }
+        .code-val { font-family: monospace; font-size: 12px; }
+        .code-val.highlight { color: #fb923c; font-weight: bold; }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 9999px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #fff;
+            text-align: center;
+        }
+        .bg-secondary { background-color: #475569; }
+        .bg-dark { background-color: #0f172a; border: 1px solid #334155; }
+        .bg-info { background-color: #0284c7; }
+
+        .mitre-badge {
+            color: #38bdf8;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .mitre-badge:hover { text-decoration: underline; }
+        .risk-pill {
+            background: #334155;
+            color: #f8fafc;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+        .card-header {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 12px 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--card-border);
+        }
+        .card-body { padding: 18px; }
+        .threat-box {
+            background: rgba(239, 68, 68, 0.08);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            padding: 12px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+        .remediation-box {
+            background: rgba(16, 185, 129, 0.08);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            padding: 12px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+        .task-list { list-style: none; }
+        .task-list li { margin-bottom: 6px; }
+        .task-list label { cursor: pointer; display: flex; align-items: center; gap: 8px; }
+
+        .filter-btn {
+            background: var(--card-bg);
+            color: var(--text-muted);
+            border: 1px solid var(--card-border);
+            padding: 5px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-left: 6px;
+        }
+        .filter-btn.active {
+            background: var(--accent);
+            color: #0f172a;
+            font-weight: bold;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            color: var(--text-muted);
+            font-size: 12px;
+            border-top: 1px solid var(--card-border);
+            padding-top: 20px;
+        }
+
+        @media print {
+            body { background: #fff; color: #000; padding: 0; }
+            .header, .kpi-card, table, .card, .meta-card { background: #fff !important; color: #000 !important; border: 1px solid #ddd !important; }
+            .badge { color: #000 !important; border: 1px solid #000; }
+            .filter-btn { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div>
+                <h1>🛡 OT/ICS 設定飄移與 MITRE ATT&CK 資安稽核報告</h1>
+                <div class="header-sub">
+                    <span>比對時間：<strong>2026-09-30T17:00:21.826180+00:00</strong></span> |
+                    <span>稽核引擎：<strong>otdrift v1.0</strong></span> |
+                    <span>底層載體：<strong>OpenPLC Runtime (Portainer Managed)</strong></span>
+                </div>
+            </div>
+            <div>
+                <span class="badge" style="font-size: 16px; padding: 10px 22px; background-color: #10b981;">
+                    狀態評級：CLEAN
+                </span>
+            </div>
+        </header>
+
+        <!-- KPI Metrics -->
+        <div class="kpi-row">
+            <div class="kpi-card">
+                <div class="kpi-label">飄移參數總計</div>
+                <div class="kpi-value" style="color: var(--accent);">0</div>
+                <small class="text-muted">項受檢參數異動</small>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">嚴重風險 (CRITICAL)</div>
+                <div class="kpi-value" style="color: var(--critical);">0</div>
+                <small class="text-muted">需立即緊急應變處置</small>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">高風險 (HIGH)</div>
+                <div class="kpi-value" style="color: var(--high);">0</div>
+                <small class="text-muted">攻擊面顯著擴大</small>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">中/低風險 (MED/LOW)</div>
+                <div class="kpi-value" style="color: var(--medium);">0</div>
+                <small class="text-muted">組態管理偏離基準</small>
+            </div>
+        </div>
+
+        <!-- Meta Grid -->
+        <div class="meta-grid">
+            <div class="meta-card">
+                <strong>📌 黃金標準 (Baseline):</strong> baseline.json<br>
+                <strong>路徑:</strong> C:\Users\peter\OneDrive\Documents\專題\configs\baseline.json<br>
+                <strong>SHA-256:</strong> <code>576922ec506f8d4c8e01525d76d542e965e18f350b981ff991b3be0159e4ef9c</code>
+            </div>
+            <div class="meta-card">
+                <strong>🔍 現場現況 (Current):</strong> 01_normal_running.json<br>
+                <strong>路徑:</strong> C:\Users\peter\OneDrive\Documents\專題\examples\scenarios\01_normal_running.json<br>
+                <strong>SHA-256:</strong> <code>576922ec506f8d4c8e01525d76d542e965e18f350b981ff991b3be0159e4ef9c</code>
+            </div>
+        </div>
+
+        <!-- Drift Details Table -->
+        <div class="section-title">
+            <span>📊 參數飄移矩陣與工控框架對應</span>
+            <div>
+                <button class="filter-btn active" onclick="filterDrifts('ALL')">全部 (0)</button>
+                <button class="filter-btn" onclick="filterDrifts('CRITICAL')">Critical</button>
+                <button class="filter-btn" onclick="filterDrifts('HIGH')">High</button>
+                <button class="filter-btn" onclick="filterDrifts('MEDIUM')">Medium</button>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 100px; text-align: center;">嚴重度</th>
+                    <th>參數路徑 (Parameter Path)</th>
+                    <th>黃金標準 (Baseline)</th>
+                    <th>現場現況 (Current)</th>
+                    <th>MITRE ICS 技術</th>
+                    <th>戰術 (Tactic)</th>
+                    <th style="text-align: center;">風險值</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td colspan="7" style="text-align:center; padding:30px; color:#10b981;">✓ 現況組態完全符合黃金標準，未檢驗出任何設定飄移！</td></tr>
+            </tbody>
+        </table>
+
+        <!-- Incident & Remediation Playbook -->
+        <div class="section-title">
+            <span>🚨 處置因應指南與事件調查指引 (Incident Playbook)</span>
+        </div>
+
+        <div>
+            <p style="color:#10b981;">無安全異常需要處置。</p>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>本報告由 <code>otdrift</code> 工控組態自動化飄移比對引擎自動生成 | 適用於 IEC 62443 / MITRE ATT&CK for ICS 規範</p>
+        </div>
+    </div>
+
+    <script>
+        function filterDrifts(level) {
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            document.querySelectorAll('.drift-row').forEach(row => {
+                if (level === 'ALL' || row.getAttribute('data-severity') === level) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+    </script>
+</body>
+</html>
